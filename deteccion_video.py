@@ -37,18 +37,15 @@ def Convertir_BGR(img):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--image_folder", type=str, default="data/samples", help="path to dataset")
     parser.add_argument("--model_def", type=str, default="config/yolov3.cfg", help="path to model definition file")
     parser.add_argument("--weights_path", type=str, default="weights/yolov3.weights", help="path to weights file")
     parser.add_argument("--class_path", type=str, default="data/coco.names", help="path to class label file")
     parser.add_argument("--conf_thres", type=float, default=0.8, help="object confidence threshold")
     parser.add_argument("--webcam", type=int, default=1,  help="Is the video processed video? 1 = Yes, 0 == no" )
     parser.add_argument("--nms_thres", type=float, default=0.4, help="iou thresshold for non-maximum suppression")
-    parser.add_argument("--batch_size", type=int, default=1, help="size of the batches")
-    parser.add_argument("--n_cpu", type=int, default=0, help="number of cpu threads to use during batch generation")
     parser.add_argument("--img_size", type=int, default=416, help="size of each image dimension")
     parser.add_argument("--directorio_video", type=str, help="Directorio al video")
-    parser.add_argument("--checkpoint_model", type=str, help="path to checkpoint model")
+    parser.add_argument("--high_contast", action='store_true', help="Activa el contraste alto al video")
     opt = parser.parse_args()
     print(opt)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -66,19 +63,31 @@ if __name__ == "__main__":
     Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
     if opt.webcam==1:
         cap = cv2.VideoCapture(0)
-        out = cv2.VideoWriter('output.mp4',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (1280,960))
+        #out = cv2.VideoWriter('output.mp4',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (1280,960))
     else:
         cap = cv2.VideoCapture(opt.directorio_video)
         # frame_width = int(cap.get(3))
         # frame_height = int(cap.get(4))
-        out = cv2.VideoWriter('outp.mp4',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (1280,960))
+        #out = cv2.VideoWriter('outp.mp4',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (1280,960))
     colors = np.random.randint(0, 255, size=(len(classes), 3), dtype="uint8")
-    a=[]
+
     while cap:
         ret, frame = cap.read()
         if ret is False:
             break
         frame = cv2.resize(frame, (1280, 960), interpolation=cv2.INTER_CUBIC)
+
+        if opt.high_contast:
+            #Remaster image
+            frame_yuv = cv2.cvtColor(frame,cv2.COLOR_BGR2YUV)
+            clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(10,10))#1.5, 3 (33) funcionó
+
+            
+            frame_yuv[:,:,0] = clahe.apply(frame_yuv[:,:,0])
+            frame = cv2.cvtColor(frame_yuv, cv2.COLOR_YUV2BGR)
+
+
+
         #LA imagen viene en Blue, Green, Red y la convertimos a RGB que es la entrada que requiere el modelo
         RGBimg=Convertir_RGB(frame)
         imgTensor = transforms.ToTensor()(RGBimg)
@@ -109,14 +118,14 @@ if __name__ == "__main__":
         
         if opt.webcam==1:
             cv2.imshow('frame', Convertir_BGR(RGBimg))
-            out.write(RGBimg)
+            #out.write(RGBimg)
         else:
-            out.write(Convertir_BGR(RGBimg))
+            #out.write(Convertir_BGR(RGBimg))
             cv2.imshow('frame', RGBimg)
         #cv2.waitKey(0)
 
         if cv2.waitKey(25) & 0xFF == ord('q'):
             break
-    out.release()
+    #out.release()
     cap.release()
     cv2.destroyAllWindows()
