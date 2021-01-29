@@ -9,6 +9,7 @@ import cv2
 from PIL import Image
 import torch
 from torch.autograd import Variable
+import time
 
 
 
@@ -63,15 +64,12 @@ if __name__ == "__main__":
     Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
     if opt.webcam==1:
         cap = cv2.VideoCapture(0)
-        #out = cv2.VideoWriter('output.mp4',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (1280,960))
     else:
         cap = cv2.VideoCapture(opt.directorio_video)
-        # frame_width = int(cap.get(3))
-        # frame_height = int(cap.get(4))
-        #out = cv2.VideoWriter('outp.mp4',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (1280,960))
     colors = np.random.randint(0, 255, size=(len(classes), 3), dtype="uint8")
 
     while cap:
+        start = time.time()
         ret, frame = cap.read()
         if ret is False:
             break
@@ -80,15 +78,11 @@ if __name__ == "__main__":
         if opt.high_contast:
             #Remaster image
             frame_yuv = cv2.cvtColor(frame,cv2.COLOR_BGR2YUV)
-            clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(10,10))#1.5, 3 (33) funcionó
+            clahe = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(4,4))#1.5, 3 (33) funcionó
 
-            
             frame_yuv[:,:,0] = clahe.apply(frame_yuv[:,:,0])
             frame = cv2.cvtColor(frame_yuv, cv2.COLOR_YUV2BGR)
 
-
-
-        #LA imagen viene en Blue, Green, Red y la convertimos a RGB que es la entrada que requiere el modelo
         RGBimg=Convertir_RGB(frame)
         imgTensor = transforms.ToTensor()(RGBimg)
         imgTensor, _ = pad_to_square(imgTensor, 0)
@@ -111,21 +105,20 @@ if __name__ == "__main__":
                     color = [int(c) for c in colors[int(cls_pred)]]
                     print("Se detectó {} en X1: {}, Y1: {}, X2: {}, Y2: {}".format(classes[int(cls_pred)], x1, y1, x2, y2))
                     frame = cv2.rectangle(frame, (x1, y1 + box_h), (x2, y1), color, 5)
-                    cv2.putText(frame, classes[int(cls_pred)], (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 3, color, 5)# Nombre de la clase detectada
-                    cv2.putText(frame, str("%.2f" % float(conf)), (x2, y2 - box_h), cv2.FONT_HERSHEY_SIMPLEX, 2,color, 5) # Certeza de prediccion de la clase
-        #
+                    cv2.putText(frame, classes[int(cls_pred)], (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 2, color, 5)# Nombre de la clase detectada
+                    cv2.putText(frame, str("%.2f" % float(conf)), (x2, y2 - box_h), cv2.FONT_HERSHEY_SIMPLEX, 1,color, 5) # Certeza de prediccion de la clase
+
         #Convertimos de vuelta a BGR para que cv2 pueda desplegarlo en los colores correctos
-        
         if opt.webcam==1:
             cv2.imshow('frame', Convertir_BGR(RGBimg))
-            #out.write(RGBimg)
         else:
-            #out.write(Convertir_BGR(RGBimg))
-            cv2.imshow('frame', RGBimg)
-        #cv2.waitKey(0)
-
+            cv2.imshow('frame', Convertir_BGR(RGBimg))
         if cv2.waitKey(25) & 0xFF == ord('q'):
             break
-    #out.release()
+        end = time.time()
+        seconds = end - start
+        fps  = 1 / seconds
+        print("Estimated frames per second : {0}".format(fps))
+	 
     cap.release()
     cv2.destroyAllWindows()

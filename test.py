@@ -98,7 +98,7 @@ if __name__ == "__main__":
         batch_size=8,
     )
 
-    print("Average Precisions:")
+    print("\nAverage Precisions:")
     for i, c in enumerate(ap_class):
         print(f"+ Class '{c}' ({class_names[c]}) - AP: {AP[i]}")
 
