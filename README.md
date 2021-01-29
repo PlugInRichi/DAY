@@ -23,6 +23,10 @@ Instalar librerias
 pip install -r requirements.txt
 ```
 
+Será necesario descargar los pesos y ponerlos en una carpeta llamada checkpoints
+
+>https://drive.google.com/drive/folders/1UZPEwQVwIw_cXa9jwf3TLV63T3YfqLjT?usp=sharing
+
 ## Ejecución 🕹️
 
 
